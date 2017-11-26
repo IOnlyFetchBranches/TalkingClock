@@ -1,0 +1,179 @@
+﻿ //Private Components
+        private static MediaPlayer player;
+        private static FileStream its = File.Open
+            ("C:\\Users\\llmuz\\source\\repos\\TalkingClock\\TalkingClock\\Audio\\SmoothTalker\\its.wav",
+                FileMode.Open, FileAccess.Read, FileShare.Read);
+
+        private static FileStream oFiller =
+            File.OpenRead("C:\\Users\\llmuz\\source\\repos\\TalkingClock\\TalkingClock\\Audio\\SmoothTalker\\o.wav");
+
+        //0 for am, 1 for pm
+        private static FileStream[] AMPM =
+        {
+            File.OpenRead("C:\\Users\\llmuz\\source\\repos\\TalkingClock\\TalkingClock\\Audio\\SmoothTalker\\am.wav"),
+            File.OpenRead("C:\\Users\\llmuz\\source\\repos\\TalkingClock\\TalkingClock\\Audio\\SmoothTalker\\pm.wav")
+        };
+
+
+
+public static void Announce()
+        {
+            player = new MediaPlayer(); //create new player 
+
+            int currentPeriod =
+                (Int32.Parse(DateTime.Now.ToString("HH")) > 0 && Int32.Parse(DateTime.Now.ToString("HH")) < 12) ? 0 : 1;
+            String CurrentHour = DateTime.Now.ToString("hh");
+            FileStream hourAudio;
+
+            if (CurrentHour.StartsWith("0"))
+            {
+                hourAudio = File.OpenRead(
+                   "C:\\Users\\llmuz\\source\\repos\\TalkingClock\\TalkingClock\\Audio\\SmoothTalker\\" +
+                   CurrentHour.ToCharArray()[1] + ".wav");
+            }
+            else
+            {
+                hourAudio = File.OpenRead(
+                   "C:\\Users\\llmuz\\source\\repos\\TalkingClock\\TalkingClock\\Audio\\SmoothTalker\\" +
+                   CurrentHour + ".wav");
+            }
+
+            String currentMin = DateTime.Now.ToString("mm");
+
+            FileStream minAudio = null, secondaryMinAudio = null, preAudio = null;
+            if (currentMin.IndexOf('0') == 0)
+            {
+                //if the time looks something like hh:0M
+                minAudio = oFiller;
+                secondaryMinAudio = File.OpenRead(
+                    "C:\\Users\\llmuz\\source\\repos\\TalkingClock\\TalkingClock\\Audio\\SmoothTalker\\" +
+                    currentMin.ToCharArray()[1] + ".wav");
+            }
+            else if (Int32.Parse(currentMin) > 9 && Int32.Parse(currentMin) < 13)
+            {
+                minAudio = File.OpenRead(
+                    "C:\\Users\\llmuz\\source\\repos\\TalkingClock\\TalkingClock\\Audio\\SmoothTalker\\" +
+                    currentMin + ".wav");
+            }
+            //13-19
+            else if (Int32.Parse(currentMin) > 12 && Int32.Parse(currentMin) < 20)
+            {
+                minAudio = File.OpenRead(
+                    "C:\\Users\\llmuz\\source\\repos\\TalkingClock\\TalkingClock\\Audio\\SmoothTalker\\" +
+                    currentMin + ".wav");
+                secondaryMinAudio = File.OpenRead(
+                     "C:\\Users\\llmuz\\source\\repos\\TalkingClock\\TalkingClock\\Audio\\SmoothTalker\\" +
+                          "teen.wav");
+            }
+            else if (currentMin == "20")
+            {
+                minAudio = File.OpenRead(
+                    "C:\\Users\\llmuz\\source\\repos\\TalkingClock\\TalkingClock\\Audio\\SmoothTalker\\" +
+                    currentMin + ".wav");
+                secondaryMinAudio = File.OpenRead(
+                    "C:\\Users\\llmuz\\source\\repos\\TalkingClock\\TalkingClock\\Audio\\SmoothTalker\\" +
+                    "ty.wav");
+            }
+            //"M0"
+            else if (currentMin.EndsWith("0") && !currentMin.StartsWith("0"))
+            {
+                minAudio = File.OpenRead(
+                    "C:\\Users\\llmuz\\source\\repos\\TalkingClock\\TalkingClock\\Audio\\SmoothTalker\\" + currentMin.Substring(0, 1) + ".wav");
+                secondaryMinAudio = File.OpenRead(
+                    "C:\\Users\\llmuz\\source\\repos\\TalkingClock\\TalkingClock\\Audio\\SmoothTalker\\" +
+                    "ty" + ".wav");
+
+            }
+
+            //":MM
+            else if (Int32.Parse(currentMin) > 20)
+            {
+                preAudio = File.OpenRead(
+                    "C:\\Users\\llmuz\\source\\repos\\TalkingClock\\TalkingClock\\Audio\\SmoothTalker\\" +
+                    "pre" + currentMin.ToCharArray()[0] + ".wav");
+                minAudio = File.OpenRead(
+                    "C:\\Users\\llmuz\\source\\repos\\TalkingClock\\TalkingClock\\Audio\\SmoothTalker\\" +
+                    "ty" + ".wav");
+                secondaryMinAudio = File.OpenRead(
+                    "C:\\Users\\llmuz\\source\\repos\\TalkingClock\\TalkingClock\\Audio\\SmoothTalker\\" +
+                    currentMin.ToCharArray()[1] + ".wav");
+            }
+            else
+            {
+                //Invalid
+                throw new ThreadStateException();
+            }
+
+
+            List<FileStream> playlist;
+            if (secondaryMinAudio != null && preAudio == null)
+            {
+                playlist = new List<FileStream>();
+                playlist.Add(its);
+                playlist.Add(hourAudio);
+                playlist.Add(minAudio);
+                playlist.Add(secondaryMinAudio);
+                playlist.Add(AMPM[currentPeriod]);
+
+
+            }
+            else if (preAudio != null)
+            {
+                playlist = new List<FileStream>();
+                playlist.Add(its);
+                playlist.Add(hourAudio);
+                playlist.Add(preAudio);
+                playlist.Add(minAudio);
+                playlist.Add(secondaryMinAudio);
+                playlist.Add(AMPM[currentPeriod]);
+            }
+            else
+            {
+                playlist = new List<FileStream>();
+                playlist.Add(its);
+                playlist.Add(hourAudio);
+                playlist.Add(minAudio);
+                playlist.Add(AMPM[currentPeriod]);
+
+
+            }
+
+            //play
+            System.Console.WriteLine(playlist.Count);
+            int delay = pauseTime;
+            try
+            {
+                foreach (FileStream clip in playlist)
+            {
+               
+                    player.Open(new Uri(clip.Name));
+                    Thread.Sleep(Convert.ToInt32(Math.Floor(delay + .75 - (delay * .25) * mediaSpeedRatio)));
+                    player.Play();
+
+                    Thread.Sleep(Convert.ToInt32(Math.Floor(delay * .80)));
+                    Boolean done = false;
+                    
+               
+            }
+            }
+
+            catch (System.InvalidOperationException)
+            {
+
+                System.Console.WriteLine("Caught INvalid Op");
+                
+            }
+
+
+            //May be unneeded, but just to make sure
+            player = new MediaPlayer();
+            System.GC.Collect();
+
+
+        }
+
+		//Set vars
+        public static void setVoiceSpeedRatio(double ratio)
+        {
+            mediaSpeedRatio = ratio;
+        }
